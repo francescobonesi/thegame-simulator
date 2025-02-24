@@ -15,7 +15,7 @@ const int REVERSE_MOVE_DIFF = 10;
 const int CARD_IN_HANDS = 8;
 const int NUM_CARDS_TO_PLAY = 2;
 const int NUMBER_OF_ROWS = 4;
-const int NUM_SIMULATIONS = 100;
+const int NUM_SIMULATIONS = 370000;
 
 enum class ValidMove {
     YES,
