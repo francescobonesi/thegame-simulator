@@ -1,6 +1,55 @@
 # TheGame simulation
 
-## Init 
+## Multiplayer version
+
+### Init 
+
+Open `mpconfig.txt` and modify the constants
+
+```
+CARD_MAX_NUMBER 100
+REVERSE_MOVE_DIFF 10
+CARD_IN_HANDS 6
+NUM_CARDS_TO_PLAY 2
+NUMBER_OF_ROWS 4
+NUMBER_OF_PLAYERS 5
+NUM_SIMULATIONS 100
+```
+
+### Compile and Run
+
+Then, run simulation
+
+```
+g++ multiplayerthegame.cpp -o mpthegame
+./mpthegame
+```
+
+Output example:
+
+```
+Overall Stats:
+  5P: {
+    win_rate: 2,
+  }
+```
+
+### TO-DO
+
+- Add more strategies
+- Analyse data and compare among number of players
+
+## 1-player OLD version
+
+### Change dir
+
+Move to old code
+
+```
+cd 1p_game_old
+```
+
+### Init 
 
 Open `thegame.cpp` and modify the constants at the beginning
 
@@ -15,7 +64,7 @@ const int NUMBER_OF_ROWS = 4;
 const int NUM_SIMULATIONS = 100;
 ```
 
-## Compile and Run
+### Compile and Run
 
 Then, run simulation
 
@@ -26,7 +75,7 @@ g++ thegame.cpp -o thegame
 
 Output is `game_results.json`
 
-## Results analysis
+### Results analysis
 
 Convert it to CSV 
 
@@ -72,9 +121,6 @@ I                       100      0.00          0.000000
 <and continues>
 ```
 
-
-
-
-## Tip
+### Tip
 
 For more accurate statistics, set `NUM_SIMULATION` to be greater or equal than 100000 (a hundred thousand).
