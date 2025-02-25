@@ -21,7 +21,7 @@ NUM_SIMULATIONS 100
 Then, run simulation
 
 ```
-g++ -o the_game main.cpp helper_functions.cpp player_strategies.cpp game_logic.cpp
+make
 ./the_game
 ```
 
