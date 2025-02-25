@@ -43,11 +43,11 @@ std::vector<int> create_deck()
     shuffle(deck);
 
     // Print the deck
-    // std::cout << "Created deck: ";
-    // for (int card: deck) {
-    //     std::cout << card << " ";
-    // }
-    // std::cout << std::endl;
+    std::cout << "Created deck: ";
+    for (int card: deck) {
+        std::cout << card << " ";
+    }
+    std::cout << std::endl;
 
     return deck;
 }
