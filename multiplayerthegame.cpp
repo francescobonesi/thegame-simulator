@@ -531,7 +531,7 @@ bool check_win_condition_multiplayer(const std::vector<Player> &players, int dec
     return true;
 }
 
-bool simulate_game_multiplayer(std::pair<int, int> (*get_player_move)(const std::vector<int>&, const std::vector<std::vector<int>>&), int num_players, const std::vector<int> &initial_deck, int &turns_taken)
+bool simulate_game_multiplayer(std::pair<int, int> (*get_player_move)(const std::vector<int>&, const std::vector<std::vector<int>>&), int num_players, const std::vector<int> &initial_deck, int &turns_taken, std::vector<std::vector<int>>& final_playing_rows, std::vector<std::vector<int>>& final_hand)
 {
     std::vector<int> deck = initial_deck;
     std::vector<Player> players(num_players);
@@ -600,18 +600,18 @@ bool simulate_game_multiplayer(std::pair<int, int> (*get_player_move)(const std:
         }
 
         // Print played cards, deck cards, and drawn cards after each turn
-        // std::cout << "Played cards: ";
-        // for (int card: played_cards) {
-        //     std::cout << card << " ";
-        // }
-        // std::cout << std::endl;
+        std::cout << "Played cards: ";
+        for (int card: played_cards) {
+            std::cout << card << " ";
+        }
+        std::cout << std::endl;
 
         // Print deck cards after each turn
-        // std::cout << "Deck cards: ";
-        // for (int card: deck) {
-        //     std::cout << card << " ";
-        // }
-        // std::cout << std::endl;
+        std::cout << "Deck cards: ";
+        for (int card: deck) {
+            std::cout << card << " ";
+        }
+        std::cout << std::endl;
 
         // Replenish hand (only if the deck is not empty)
         while (current_player.hand.size() < CARD_IN_HANDS && deck_size > 0)
@@ -622,18 +622,19 @@ bool simulate_game_multiplayer(std::pair<int, int> (*get_player_move)(const std:
             deck_size--;
         }
 
-        // std::cout << "Drawn cards: ";
-        // for (int card: drawn_cards) {
-        //     std::cout << card << " ";
-        // }
-        // std::cout << std::endl;
+        // Print drawn cards after each turn
+        std::cout << "Drawn cards: ";
+        for (int card: drawn_cards) {
+            std::cout << card << " ";
+        }
+        std::cout << std::endl;
 
         // Print deck cards after each turn
-        // std::cout << "Deck cards: ";
-        // for (int card: deck) {
-        //     std::cout << card << " ";
-        // }
-        // std::cout << std::endl;
+        std::cout << "Deck cards: ";
+        for (int card: deck) {
+            std::cout << card << " ";
+        }
+        std::cout << std::endl;
 
         // Check if the player has no cards left and deactivate
         if (current_player.hand.empty() && deck_size == 0)
@@ -644,8 +645,8 @@ bool simulate_game_multiplayer(std::pair<int, int> (*get_player_move)(const std:
         current_player_index = (current_player_index + 1) % num_players;
 
         // Display game state after each player's turn
-        // std::cout << "---- Player " << player_order[current_player_index] + 1 << " Turn ----\n"; // Assuming players are numbered from 1
-        // display_game_state(playing_rows, current_player.hand, deck_size);
+        std::cout << "---- Player " << player_order[current_player_index] + 1 << " Turn ----\n"; // Assuming players are numbered from 1
+        display_game_state(playing_rows, current_player.hand, deck_size);
 
         // Check win condition
         bool all_players_done = true;
@@ -663,7 +664,14 @@ bool simulate_game_multiplayer(std::pair<int, int> (*get_player_move)(const std:
         }
     }
 
+    // Store the final hands of all players
+    for (const auto& player : players) {
+        final_hand.push_back(player.hand);
+    }
+
     turns_taken = turns;
+    final_playing_rows = playing_rows; // Store the final state
+
     return check_win_condition_multiplayer(players, deck_size);
 }
 
@@ -726,10 +734,14 @@ int main()
 
     struct GameResult
     {
-        std::string shuffle_id;
         int num_players;
+        std::string shuffle_id;
+        std::string strategy_name;
         bool win;
         int turns;
+        std::vector<std::vector<int>> final_playing_rows;
+        std::vector<std::vector<int>> final_hand;
+        int deck_size;
     };
     std::vector<GameResult> game_results;
 
@@ -760,13 +772,36 @@ int main()
                 player.hand.clear();
             }
 
-            bool won = simulate_game_multiplayer(strategy_func, num_players, game_deck, turns);
+
+            std::vector<std::vector<int>> final_playing_rows;
+            std::vector<std::vector<int>> final_hand;
+            bool won = simulate_game_multiplayer(strategy_func, num_players, game_deck, turns, final_playing_rows, final_hand);
             
             GameResult result;
-            result.shuffle_id = shuffle_id;
             result.num_players = num_players;
+            result.shuffle_id = shuffle_id;
+            result.strategy_name = strategy_name;
             result.win = won;
             result.turns = turns;
+            result.final_playing_rows = final_playing_rows;
+            result.final_hand = final_hand;
+            result.deck_size = 0;
+            if (!won) {
+                std::vector<int> temp_deck = game_deck;
+                for(int i =0; i < CARD_IN_HANDS; ++i) temp_deck.pop_back();
+                for(auto& row: final_playing_rows){
+                    for(int card: row){
+                        if(card > 1 && card < CARD_MAX_NUMBER){
+                            auto it = std::find(temp_deck.begin(), temp_deck.end(), card);
+                            if (it != temp_deck.end()) {
+                                    temp_deck.erase(it);
+                                }
+
+                        }
+                    }
+                }
+                result.deck_size = temp_deck.size();
+            }
             game_results.push_back(result);
 
             if (won)
@@ -778,6 +813,38 @@ int main()
         std::cout << "Completed simulation of game " << game << "\n";
     }
 
+    // Print game results
+    for (const auto& result : game_results) {
+        std::cout << "Game Results:\n";
+        std::cout << "  Number of Players: " << result.num_players << "\n";
+        std::cout << "  Shuffle ID: " << result.shuffle_id << "\n";
+        std::cout << "  Strategy: " << result.strategy_name << "\n";
+        std::cout << "  Win: " << (result.win ? "true" : "false") << "\n";
+        std::cout << "  Turns: " << result.turns << "\n";
+        std::cout << "  Deck Size: " << result.deck_size << "\n";
+
+        // Print final playing rows
+        std::cout << "  Final Playing Rows:\n";
+        for (int i = 0; i < NUMBER_OF_ROWS; ++i) {
+            std::cout << "    " << (i < NUMBER_OF_ROWS / 2 ? "Ascending: " : "Descending: ");
+            for (int card : result.final_playing_rows[i]) {
+                std::cout << card << " ";
+            }
+            std::cout << "\n";
+        }
+
+        // Print final hands of players
+        std::cout << "  Final Hands:\n";
+        for (int i = 0; i < result.num_players; ++i) {
+            std::cout << "    Player " << i + 1 << ": ";
+            for (int card : result.final_hand[i]) {
+                std::cout << card << " ";
+            }
+            std::cout << "\n";
+        }
+
+        std::cout << std::endl;
+    }
 
     // --- Console Output ---
     for (auto const& [strategy_name, win_count] : win_counts){
