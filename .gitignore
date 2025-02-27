@@ -5,3 +5,4 @@ game_results.json
 mp_game_old
 .ipynb_checkpoints
 the_game
+*.out

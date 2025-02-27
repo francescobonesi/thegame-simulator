@@ -3,36 +3,68 @@
 #include "game_logic.h"
 
 #include <iostream>
-#include <fstream>
-#include <sstream>
+#include <fstream> // std::ifstream
+#include <sstream> // std::istringstream
 #include <string>
 #include <vector>
-#include <map>
-#include <ctime>
-#include <algorithm>
+#include <map>       // std::map
+#include <ctime>     // std::time, std::srand
+#include <algorithm> // std::find
 
-// Constants init var
-int CARD_MAX_NUMBER;
-int REVERSE_MOVE_DIFF;
-int CARD_IN_HANDS;
-int NUM_CARDS_TO_PLAY;
-int NUMBER_OF_ROWS;
-int NUMBER_OF_PLAYERS;
-int NUM_SIMULATIONS;
+// Constants (declared and initialized here)
+int CARD_MAX_NUMBER;   // Maximum card value
+int REVERSE_MOVE_DIFF; // Difference for a reverse-10 move
+int CARD_IN_HANDS;     // Number of cards each player holds
+int NUM_CARDS_TO_PLAY; // Number of cards to play per turn
+int NUMBER_OF_ROWS;    // Number of playing rows
+int NUMBER_OF_PLAYERS; // Number of players in the game
+int NUM_SIMULATIONS;   // Number of games to simulate
 
-int main()
+/**
+ * @brief Main function to simulate and analyze the card game.
+ *
+ * This function reads configuration parameters from a file, sets up the game,
+ * runs multiple simulations with different strategies, and outputs the results.
+ *
+ * @return 0 if the program executes successfully.
+ */
+int main(int argc, char** argv) // Corrected argv declaration
 {
+    std::string config_filename = "mpconfig.txt"; // Default config file name
 
-    // Read variables from config file
-    std::ifstream config_file("mpconfig.txt");
-    std::string line;
+    // Parse command-line arguments
+    for (int i = 1; i < argc; ++i)
+    {
+        if (std::string(argv[i]) == "--config")
+        { // Construct string with char*
+            if (i + 1 < argc)
+            {
+                config_filename = argv[i + 1];
+                i++;
+            }
+            else
+            {
+                std::cerr << "Error: Missing configuration file name after --config\n";
+                return 1;
+            }
+        }
+    }
+
+    std::ifstream config_file(config_filename); // Open the configuration file
+
+    std::string line; // Store each line read from the file
+
+    // Read each line from the configuration file
     while (std::getline(config_file, line))
     {
-        std::istringstream iss(line);
-        std::string variable_name;
-        int variable_value;
+        std::istringstream iss(line); // Create a stringstream from the line
+        std::string variable_name;    // Store the variable name
+        int variable_value;           // Store the variable value
+
+        // Attempt to extract the variable name and value from the line
         if (iss >> variable_name >> variable_value)
         {
+            // Assign the read value to the corresponding global variable
             if (variable_name == "CARD_MAX_NUMBER")
             {
                 CARD_MAX_NUMBER = variable_value;
@@ -61,64 +93,78 @@ int main()
             {
                 NUM_SIMULATIONS = variable_value;
             }
+            // Output the read variable and its value to the console
             std::cout << variable_name << ": " << variable_value << std::endl;
         }
     }
-    config_file.close();
+    config_file.close(); // Close the configuration file
 
-    std::srand(std::time(nullptr));
-    int num_games_to_simulate = NUM_SIMULATIONS;
+    // --- 2. Setup Random Number Generator and Game Parameters ---
+    std::srand(std::time(nullptr));              // Seed the random number generator
+    int num_games_to_simulate = NUM_SIMULATIONS; // Number of games to simulate
 
+    // --- 3. Define Player Strategies ---
+    // Create a map to associate strategy names with their function pointers
     std::map<std::string, std::pair<int, int> (*)(const std::vector<int> &, const std::vector<std::vector<int>> &)> strategies;
-    strategies["A"] = get_player_move_A;
-    strategies["B"] = get_player_move_B;
-    strategies["C"] = get_player_move_C;
-    strategies["D"] = get_player_move_D;
-    strategies["E"] = get_player_move_E;
-    strategies["F"] = get_player_move_F;
-    strategies["G"] = get_player_move_G;
-    strategies["H"] = get_player_move_H;
-    strategies["I"] = get_player_move_I;
+    strategies["A"] = get_player_move_A; // Strategy A: Closest Card
+    strategies["B"] = get_player_move_B; // Strategy B: Closest Card (No Reverse)
+    strategies["C"] = get_player_move_C; // Strategy C: Maximize Future Playability
+    strategies["D"] = get_player_move_D; // Strategy D: Prioritize Ascending Rows
+    strategies["E"] = get_player_move_E; // Strategy E: Combination of C and A
+    strategies["F"] = get_player_move_F; // Strategy F: Maximize Minimum Gap
+    strategies["G"] = get_player_move_G; // Strategy G: Weighted Combination of A, C, and F
+    strategies["H"] = get_player_move_H; // Strategy H: Panic Mode
+    strategies["I"] = get_player_move_I; // Strategy I: Minimize Blocking 1 and 100
 
+    // --- 4. Structure to Store Game Results ---
+    // Define a struct to hold the results of each simulated game
     struct GameResult
     {
-        int num_players;
-        std::string shuffle_id;
-        std::string strategy_name;
-        bool win;
-        int turns;
-        std::vector<std::vector<int>> final_playing_rows;
-        std::vector<std::vector<int>> final_hand;
-        int deck_size;
+        int num_players;                                  // Number of players in the game
+        std::string shuffle_id;                           // Unique ID for the shuffled deck
+        std::string strategy_name;                        // Name of the strategy used
+        bool win;                                         // True if the strategy won, false otherwise
+        int turns;                                        // Number of turns taken in the game
+        std::vector<std::vector<int>> final_playing_rows; // Final state of the playing rows
+        std::vector<std::vector<int>> final_hand;         // Final hands of the players
+        int deck_size;                                    // Size of the deck at the end of the game (or 0 if won)
     };
-    std::vector<GameResult> game_results;
+    std::vector<GameResult> game_results; // Vector to store the results of all games
 
+    // --- 5. Data Structures for Win Rates and Turn Counts ---
+    // Create maps to store win counts and total turns for each strategy
     std::map<std::string, int> win_counts;
     std::map<std::string, int> total_turns;
 
+    // Initialize win counts and total turns to 0 for each strategy
     for (auto const &[key, val] : strategies)
     {
         win_counts[key] = 0;
         total_turns[key] = 0;
     }
 
-    int num_players = NUMBER_OF_PLAYERS;
+    int num_players = NUMBER_OF_PLAYERS; // Get the number of players from the config
 
-    std::vector<int> initial_deck = create_deck();
+    // --- 6. Simulate Games and Store Results ---
+    std::vector<int> initial_deck = create_deck(); // Create the initial shuffled deck
 
+    // Simulate multiple games
     for (int game = 0; game < num_games_to_simulate; ++game)
     {
-        std::vector<int> game_deck = initial_deck;
-        shuffle(game_deck);
-        std::string shuffle_id = generate_deck_id(game_deck);
+        std::vector<int> game_deck = initial_deck;            // Copy the initial deck for this game
+        shuffle(game_deck);                                   // Shuffle the deck
+        std::string shuffle_id = generate_deck_id(game_deck); // Generate a unique ID
 
+        // Iterate through each strategy
         for (auto const &[strategy_name, strategy_func] : strategies)
         {
-            int turns = 0;
-            std::vector<std::vector<int>> final_playing_rows;
-            std::vector<std::vector<int>> final_hand;
+            int turns = 0;                                    // Reset turn counter for each strategy
+            std::vector<std::vector<int>> final_playing_rows; // Store final rows
+            std::vector<std::vector<int>> final_hand;         // Store final hands
+            // Simulate the game with the current strategy
             bool won = simulate_game_multiplayer(strategy_func, num_players, game_deck, turns, final_playing_rows, final_hand);
 
+            // Store the results of the game
             GameResult result;
             result.num_players = num_players;
             result.shuffle_id = shuffle_id;
@@ -127,16 +173,21 @@ int main()
             result.turns = turns;
             result.final_playing_rows = final_playing_rows;
             result.final_hand = final_hand;
-            result.deck_size = 0;
+            result.deck_size = 0; // Initialize deck size to 0 (will be updated if not won)
+
+            // If the game was not won, calculate the remaining deck size
             if (!won)
             {
-                std::vector<int> temp_deck = game_deck;
+                std::vector<int> temp_deck = game_deck; // Copy the game deck
+                // Remove cards from the deck that were dealt to players
                 for (int i = 0; i < CARD_IN_HANDS; ++i)
                     temp_deck.pop_back();
+                // Remove cards from the deck that are in the final playing rows
                 for (auto &row : final_playing_rows)
                 {
                     for (int card : row)
                     {
+                        // Ensure we don't remove the initial row markers (1 and CARD_MAX_NUMBER)
                         if (card > 1 && card < CARD_MAX_NUMBER)
                         {
                             auto it = std::find(temp_deck.begin(), temp_deck.end(), card);
@@ -147,20 +198,23 @@ int main()
                         }
                     }
                 }
-                result.deck_size = temp_deck.size();
+                result.deck_size = temp_deck.size(); // Store the remaining deck size
             }
-            game_results.push_back(result);
+            game_results.push_back(result); // Add the result to the list of game results
 
+            // If the game was won, update win counts and total turns
             if (won)
             {
                 win_counts[strategy_name]++;
                 total_turns[strategy_name] += turns;
             }
         }
+        // Output progress to the console
         std::cout << "Completed simulation of game " << game << "\n";
     }
 
-    // Print game results
+    // --- 7. Output Game Results ---
+    // Print detailed results for each game
     for (const auto &result : game_results)
     {
         std::cout << "Game Results:\n";
@@ -171,7 +225,7 @@ int main()
         std::cout << "  Turns: " << result.turns << "\n";
         std::cout << "  Deck Size: " << result.deck_size << "\n";
 
-        // Print final playing rows
+        // Print the final playing rows
         std::cout << "  Final Playing Rows:\n";
         for (int i = 0; i < NUMBER_OF_ROWS; ++i)
         {
@@ -183,7 +237,7 @@ int main()
             std::cout << "\n";
         }
 
-        // Print final hands of players
+        // Print the final hands of players
         std::cout << "  Final Hands:\n";
         for (int i = 0; i < result.final_hand.size(); ++i)
         {
@@ -198,7 +252,8 @@ int main()
         std::cout << std::endl;
     }
 
-    // --- Console Output ---
+    // --- 8. Output Overall Win Rates ---
+    // Calculate and print the win rate for each strategy
     for (auto const &[strategy_name, win_count] : win_counts)
     {
         double win_rate = (static_cast<double>(win_count) / num_games_to_simulate) * 100;
@@ -208,5 +263,5 @@ int main()
         std::cout << strategy_name << " win rate: " << win_rate << " %\n";
     }
 
-    return 0;
+    return 0; // Indicate successful execution
 }
