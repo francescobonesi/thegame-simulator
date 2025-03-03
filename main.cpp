@@ -107,14 +107,14 @@ int main(int argc, char** argv) // Corrected argv declaration
     // Create a map to associate strategy names with their function pointers
     std::map<std::string, std::pair<int, int> (*)(const std::vector<int> &, const std::vector<std::vector<int>> &)> strategies;
     strategies["A"] = get_player_move_A; // Strategy A: Closest Card
-    strategies["B"] = get_player_move_B; // Strategy B: Closest Card (No Reverse)
-    strategies["C"] = get_player_move_C; // Strategy C: Maximize Future Playability
-    strategies["D"] = get_player_move_D; // Strategy D: Prioritize Ascending Rows
+    // strategies["B"] = get_player_move_B; // Strategy B: Closest Card (No Reverse)
+    // strategies["C"] = get_player_move_C; // Strategy C: Maximize Future Playability
+    // strategies["D"] = get_player_move_D; // Strategy D: Prioritize Ascending Rows
     strategies["E"] = get_player_move_E; // Strategy E: Combination of C and A
-    strategies["F"] = get_player_move_F; // Strategy F: Maximize Minimum Gap
-    strategies["G"] = get_player_move_G; // Strategy G: Weighted Combination of A, C, and F
+    // strategies["F"] = get_player_move_F; // Strategy F: Maximize Minimum Gap
+    // strategies["G"] = get_player_move_G; // Strategy G: Weighted Combination of A, C, and F
     strategies["H"] = get_player_move_H; // Strategy H: Panic Mode
-    strategies["I"] = get_player_move_I; // Strategy I: Minimize Blocking 1 and 100
+    // strategies["I"] = get_player_move_I; // Strategy I: Minimize Blocking 1 and 100
 
     // --- 4. Structure to Store Game Results ---
     // Define a struct to hold the results of each simulated game
