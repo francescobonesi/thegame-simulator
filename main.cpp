@@ -104,16 +104,19 @@ int main(int argc, char** argv) // Corrected argv declaration
     int num_games_to_simulate = NUM_SIMULATIONS; // Number of games to simulate
 
     // --- 3. Define Player Strategies ---
-    // Create a map to associate strategy names with their function pointers
-    std::map<std::string, std::pair<int, int> (*)(const std::vector<int> &, const std::vector<std::vector<int>> &)> strategies;
-    strategies["A"] = get_player_move_A; // Strategy A: Closest Card
+    // Create a map to associate strategy names with their function pointers.
+    //  IMPORTANT: The function pointer type now includes Communication and player_id.
+    std::map<std::string, std::pair<int, int> (*)(const std::vector<int> &, const std::vector<std::vector<int>> &, const std::vector<Communication>&, int)> strategies;
+    strategies["A"] = [](const std::vector<int>& hand, const std::vector<std::vector<int>>& playing_rows, const std::vector<Communication>& comms, int player_id) {
+        return get_player_move_A(hand, playing_rows, comms, player_id);
+    }; // Strategy A: Closest Card
     // strategies["B"] = get_player_move_B; // Strategy B: Closest Card (No Reverse)
     // strategies["C"] = get_player_move_C; // Strategy C: Maximize Future Playability
     // strategies["D"] = get_player_move_D; // Strategy D: Prioritize Ascending Rows
-    strategies["E"] = get_player_move_E; // Strategy E: Combination of C and A
+    // strategies["E"] = get_player_move_E; // Strategy E: Combination of C and A
     // strategies["F"] = get_player_move_F; // Strategy F: Maximize Minimum Gap
     // strategies["G"] = get_player_move_G; // Strategy G: Weighted Combination of A, C, and F
-    strategies["H"] = get_player_move_H; // Strategy H: Panic Mode
+    // strategies["H"] = get_player_move_H; // Strategy H: Panic Mode
     // strategies["I"] = get_player_move_I; // Strategy I: Minimize Blocking 1 and 100
 
     // --- 4. Structure to Store Game Results ---
@@ -173,33 +176,7 @@ int main(int argc, char** argv) // Corrected argv declaration
             result.turns = turns;
             result.final_playing_rows = final_playing_rows;
             result.final_hand = final_hand;
-            result.deck_size = 0; // Initialize deck size to 0 (will be updated if not won)
-
-            // If the game was not won, calculate the remaining deck size
-            if (!won)
-            {
-                std::vector<int> temp_deck = game_deck; // Copy the game deck
-                // Remove cards from the deck that were dealt to players
-                for (int i = 0; i < CARD_IN_HANDS; ++i)
-                    temp_deck.pop_back();
-                // Remove cards from the deck that are in the final playing rows
-                for (auto &row : final_playing_rows)
-                {
-                    for (int card : row)
-                    {
-                        // Ensure we don't remove the initial row markers (1 and CARD_MAX_NUMBER)
-                        if (card > 1 && card < CARD_MAX_NUMBER)
-                        {
-                            auto it = std::find(temp_deck.begin(), temp_deck.end(), card);
-                            if (it != temp_deck.end())
-                            {
-                                temp_deck.erase(it);
-                            }
-                        }
-                    }
-                }
-                result.deck_size = temp_deck.size(); // Store the remaining deck size
-            }
+            result.deck_size = -1; // IMPROVE THIS
             game_results.push_back(result); // Add the result to the list of game results
 
             // If the game was won, update win counts and total turns

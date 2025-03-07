@@ -3,6 +3,9 @@
 
 #include <vector>
 
+struct Communication;
+
+
 void shuffle(std::vector<int> &deck);
 std::vector<int> create_deck();
 std::vector<int> deal_cards(std::vector<int> &deck, int num_cards);
