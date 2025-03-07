@@ -103,29 +103,15 @@
                 for (int card : players[p_idx].hand) {
                     for (int r_idx = 0; r_idx < NUMBER_OF_ROWS; ++r_idx) {
                         bool is_ascending = r_idx < NUMBER_OF_ROWS / 2;
-                        if (is_valid_move(card, playing_rows[r_idx].back(), is_ascending) == ValidMove::REVERSE_MOVE)
+                        ValidMove vm = is_valid_move(card, playing_rows[r_idx].back(), is_ascending);
+                        if (vm == ValidMove::REVERSE_MOVE)
                         {
                             communications.push_back({p_idx, r_idx, Communication::REVERSE_TRICK, 0});
                         }
-                    }
-                }
-
-                int valid_moves_count = 0;
-                for(int card_in_hand : players[p_idx].hand)
-                {
-                    for(int j=0; j<playing_rows.size(); ++j)
-                    {
-                        if (is_valid_move(card_in_hand, playing_rows[j].back(), j < NUMBER_OF_ROWS/2) != ValidMove::NO)
-                        {
-                            valid_moves_count++;
-                            break;
+                        else if (vm == ValidMove::EXCELLENT){
+                            communications.push_back({p_idx, r_idx, Communication::GOOD_CARD, 0});
                         }
                     }
-                }
-
-                if (NUM_CARDS_TO_PLAY == 2 && valid_moves_count <= 1)
-                {
-                    communications.push_back({p_idx, -1, Communication::ONLY_ONE_CARD, 0});
                 }
             }
         }
@@ -151,7 +137,6 @@
 
             if (card_index != -1) {
                 int card_to_play = current_player.hand[card_index]; // Use ORIGINAL hand here
-                communications.push_back({player_order[current_player_index], row_index, Communication::TARGET_ROW, 0});
                 make_move(card_to_play, row_index, playing_rows);
                 played_cards.push_back(card_to_play);
 

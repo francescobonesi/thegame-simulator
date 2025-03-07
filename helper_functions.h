@@ -11,6 +11,7 @@ std::vector<int> create_deck();
 std::vector<int> deal_cards(std::vector<int> &deck, int num_cards);
 void display_game_state(const std::vector<std::vector<int>> &playing_rows, const std::vector<int> &hand, int deck_size);
 enum class ValidMove {
+    EXCELLENT,
     YES,
     REVERSE_MOVE,
     NO

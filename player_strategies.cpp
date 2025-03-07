@@ -1,24 +1,25 @@
 #include "player_strategies.h"
- #include "helper_functions.h"
- #include <cmath>
- #include <algorithm>
+#include "helper_functions.h"
+#include <cmath>
+#include <algorithm>
 
- // Constants (defined in main.cpp, declared extern here)
- extern int CARD_MAX_NUMBER; // Maximum value of a card
- extern int REVERSE_MOVE_DIFF; // Difference needed for a reverse move
- extern int NUMBER_OF_ROWS; // Number of rows in the playing area
+// Constants (defined in main.cpp, declared extern here)
+extern int CARD_MAX_NUMBER;   // Maximum value of a card
+extern int REVERSE_MOVE_DIFF; // Difference needed for a reverse move
+extern int NUMBER_OF_ROWS;    // Number of rows in the playing area
+extern int GOOD_MOVE_WINDOW;  // interval for good moves
 
- /**
-  * @brief Strategy A: Plays the card closest in value to the top card of a row.
-  *
-  * This strategy considers both ascending and descending rows and allows reverse moves.
-  * It chooses the card that minimizes the absolute difference with the row's top card.
-  *
-  * @param hand The player's current hand of cards.
-  * @param playing_rows The current state of the playing rows.
-  * @return A pair containing the best card to play and the row index, or {-1, -1} if no valid move.
-  */
- std::pair<int, int> get_player_move_A(const std::vector<int> &hand, const std::vector<std::vector<int>> &playing_rows, const std::vector<Communication>& communications, int player_id)
+/**
+ * @brief Strategy A: Plays the card closest in value to the top card of a row. Communication among players.
+ *
+ * This strategy considers both ascending and descending rows and allows reverse moves.
+ * It chooses the card that minimizes the absolute difference with the row's top card.
+ *
+ * @param hand The player's current hand of cards.
+ * @param playing_rows The current state of the playing rows.
+ * @return A pair containing the best card to play and the row index, or {-1, -1} if no valid move.
+ */
+std::pair<int, int> get_player_move_A1(const std::vector<int> &hand, const std::vector<std::vector<int>> &playing_rows, const std::vector<Communication> &communications, int player_id)
 {
     int best_card_index = -1; // Store the *index* of the best card
     int best_card = -1;
@@ -27,43 +28,86 @@
 
     // --- Observation Phase ---
     std::vector<int> claimed_rows;
-    for (const auto& comm : communications) {
-        if (comm.player_id != player_id) { // Don't react to your own communication
-            if (comm.type == Communication::TARGET_ROW) {
-                claimed_rows.push_back(comm.row_index);
-            }
-            // You can add more observation logic here for other CommTypes
+    for (const auto &comm : communications)
+    {
+        if (comm.player_id != player_id)
+        {                                           // Don't react to your own communication
+            claimed_rows.push_back(comm.row_index); // GOOD MOVE or REVERSE MOVE from another player
         }
     }
 
     // --- Decision-Making Phase (with Communication) ---
-    for (int i = 0; i < hand.size(); ++i) {
-        for (int j = 0; j < NUMBER_OF_ROWS; ++j) {
+    for (int i = 0; i < hand.size(); ++i)
+    {
+        for (int j = 0; j < NUMBER_OF_ROWS; ++j)
+        {
             ValidMove valid_move = is_valid_move(hand[i], playing_rows[j].back(), j < NUMBER_OF_ROWS / 2);
-            if (valid_move != ValidMove::NO) {
+            if (valid_move != ValidMove::NO)
+            {
                 int diff = (valid_move == ValidMove::REVERSE_MOVE) ? -1 : std::abs(hand[i] - playing_rows[j].back());
 
                 // Check if the row is claimed.  If it is, and our move is "bad", increase the diff
                 // to make it less likely to be chosen.
                 bool row_is_claimed = std::find(claimed_rows.begin(), claimed_rows.end(), j) != claimed_rows.end();
-                if (row_is_claimed && diff > 5) { // Example: Consider it a bad move if diff > 5
-                    diff = std::numeric_limits<int>::max()-1; // Set to almost max int
+                if (row_is_claimed && diff > GOOD_MOVE_WINDOW)
+                {                                               // Consider it a less good move if diff > GOOD_MOVE_WINDOW
+                    diff = diff*100; 
                 }
 
-                if (diff < min_diff) {
+                if (diff < min_diff)
+                {
                     min_diff = diff;
                     best_card = hand[i];
-                    best_card_index = i; // Store the *index*
+                    best_card_index = i;
                     best_row = j;
                 }
             }
         }
     }
 
-
     return {best_card_index, best_row};
 }
 
+
+/**
+ * @brief Strategy A2: Plays the card closest in value to the top card of a row. NO COMMUNICATION among players.
+ *
+ * This strategy considers both ascending and descending rows and allows reverse moves.
+ * It chooses the card that minimizes the absolute difference with the row's top card.
+ *
+ * @param hand The player's current hand of cards.
+ * @param playing_rows The current state of the playing rows.
+ * @return A pair containing the best card to play and the row index, or {-1, -1} if no valid move.
+ */
+std::pair<int, int> get_player_move_A2(const std::vector<int> &hand, const std::vector<std::vector<int>> &playing_rows, const std::vector<Communication> &communications, int player_id)
+{
+    int best_card_index = -1; // Store the *index* of the best card
+    int best_card = -1;
+    int best_row = -1;
+    int min_diff = std::numeric_limits<int>::max(); // Use numeric_limits for max value
+
+    // --- Decision-Making Phase (with Communication) ---
+    for (int i = 0; i < hand.size(); ++i)
+    {
+        for (int j = 0; j < NUMBER_OF_ROWS; ++j)
+        {
+            ValidMove valid_move = is_valid_move(hand[i], playing_rows[j].back(), j < NUMBER_OF_ROWS / 2);
+            if (valid_move != ValidMove::NO)
+            {
+                int diff = (valid_move == ValidMove::REVERSE_MOVE) ? -1 : std::abs(hand[i] - playing_rows[j].back());
+                if (diff < min_diff)
+                {
+                    min_diff = diff;
+                    best_card = hand[i];
+                    best_card_index = i;
+                    best_row = j;
+                }
+            }
+        }
+    }
+
+    return {best_card_index, best_row};
+}
 
 //  /**
 //   * @brief Strategy B: Plays the card closest in value to the top card of a row, without reverse moves.

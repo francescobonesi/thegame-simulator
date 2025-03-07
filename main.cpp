@@ -19,6 +19,7 @@ int NUM_CARDS_TO_PLAY; // Number of cards to play per turn
 int NUMBER_OF_ROWS;    // Number of playing rows
 int NUMBER_OF_PLAYERS; // Number of players in the game
 int NUM_SIMULATIONS;   // Number of games to simulate
+int GOOD_MOVE_WINDOW;  // Internal for good moves
 
 /**
  * @brief Main function to simulate and analyze the card game.
@@ -93,6 +94,10 @@ int main(int argc, char** argv) // Corrected argv declaration
             {
                 NUM_SIMULATIONS = variable_value;
             }
+            else if(variable_name == "GOOD_MOVE_WINDOW")
+            {
+                GOOD_MOVE_WINDOW = variable_value;
+            }
             // Output the read variable and its value to the console
             std::cout << variable_name << ": " << variable_value << std::endl;
         }
@@ -107,9 +112,13 @@ int main(int argc, char** argv) // Corrected argv declaration
     // Create a map to associate strategy names with their function pointers.
     //  IMPORTANT: The function pointer type now includes Communication and player_id.
     std::map<std::string, std::pair<int, int> (*)(const std::vector<int> &, const std::vector<std::vector<int>> &, const std::vector<Communication>&, int)> strategies;
-    strategies["A"] = [](const std::vector<int>& hand, const std::vector<std::vector<int>>& playing_rows, const std::vector<Communication>& comms, int player_id) {
-        return get_player_move_A(hand, playing_rows, comms, player_id);
+    strategies["A1"] = [](const std::vector<int>& hand, const std::vector<std::vector<int>>& playing_rows, const std::vector<Communication>& comms, int player_id) {
+        return get_player_move_A1(hand, playing_rows, comms, player_id);
     }; // Strategy A: Closest Card
+    strategies["A2"] = [](const std::vector<int>& hand, const std::vector<std::vector<int>>& playing_rows, const std::vector<Communication>& comms, int player_id) {
+        return get_player_move_A2(hand, playing_rows, comms, player_id);
+    }; // Strategy A: Closest Card
+
     // strategies["B"] = get_player_move_B; // Strategy B: Closest Card (No Reverse)
     // strategies["C"] = get_player_move_C; // Strategy C: Maximize Future Playability
     // strategies["D"] = get_player_move_D; // Strategy D: Prioritize Ascending Rows
