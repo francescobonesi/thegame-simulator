@@ -119,6 +119,21 @@ int main(int argc, char** argv) // Corrected argv declaration
         return get_player_move_A2(hand, playing_rows, comms, player_id);
     }; // Strategy A: Closest Card
 
+    strategies["E1"] = [](const std::vector<int>& hand, const std::vector<std::vector<int>>& playing_rows, const std::vector<Communication>& comms, int player_id) {
+        return get_player_move_E1(hand, playing_rows, comms, player_id);
+    }; // Strategy E: Combination of C and A
+    strategies["E2"] = [](const std::vector<int>& hand, const std::vector<std::vector<int>>& playing_rows, const std::vector<Communication>& comms, int player_id) {
+        return get_player_move_E2(hand, playing_rows, comms, player_id);
+    }; // Strategy E: Combination of C and A
+
+    strategies["H1"] = [](const std::vector<int>& hand, const std::vector<std::vector<int>>& playing_rows, const std::vector<Communication>& comms, int player_id) {
+        return get_player_move_H1(hand, playing_rows, comms, player_id);
+    }; // Strategy H: Panic Mode
+    strategies["H2"] = [](const std::vector<int>& hand, const std::vector<std::vector<int>>& playing_rows, const std::vector<Communication>& comms, int player_id) {
+        return get_player_move_H2(hand, playing_rows, comms, player_id);
+    }; // Strategy H: Panic Mode
+
+    // strategies["A"] = get_player_move_A; // Strategy A: Closest Card
     // strategies["B"] = get_player_move_B; // Strategy B: Closest Card (No Reverse)
     // strategies["C"] = get_player_move_C; // Strategy C: Maximize Future Playability
     // strategies["D"] = get_player_move_D; // Strategy D: Prioritize Ascending Rows

@@ -21,10 +21,16 @@ std::pair<int, int> get_player_move_A2(const std::vector<int> &hand, const std::
 // std::pair<int, int> get_player_move_B(const std::vector<int> &hand, const std::vector<std::vector<int>> &playing_rows);
 // std::pair<int, int> get_player_move_C(const std::vector<int> &hand, const std::vector<std::vector<int>> &playing_rows);
 // std::pair<int, int> get_player_move_D(const std::vector<int> &hand, const std::vector<std::vector<int>> &playing_rows);
-// std::pair<int, int> get_player_move_E(const std::vector<int> &hand, const std::vector<std::vector<int>> &playing_rows);
+
+std::pair<int, int> get_player_move_E1(const std::vector<int> &hand, const std::vector<std::vector<int>> &playing_rows, const std::vector<Communication>& communications, int player_id);
+std::pair<int, int> get_player_move_E2(const std::vector<int> &hand, const std::vector<std::vector<int>> &playing_rows, const std::vector<Communication>& communications, int player_id);
+
 // std::pair<int, int> get_player_move_F(const std::vector<int> &hand, const std::vector<std::vector<int>> &playing_rows);
 // std::pair<int, int> get_player_move_G(const std::vector<int> &hand, const std::vector<std::vector<int>> &playing_rows);
-// std::pair<int, int> get_player_move_H(const std::vector<int> &hand, const std::vector<std::vector<int>> &playing_rows);
+
+std::pair<int, int> get_player_move_H1(const std::vector<int> &hand, const std::vector<std::vector<int>> &playing_rows, const std::vector<Communication>& communications, int player_id);
+std::pair<int, int> get_player_move_H2(const std::vector<int> &hand, const std::vector<std::vector<int>> &playing_rows, const std::vector<Communication>& communications, int player_id);
+
 // std::pair<int, int> get_player_move_I(const std::vector<int> &hand, const std::vector<std::vector<int>> &playing_rows);
 
 #endif
