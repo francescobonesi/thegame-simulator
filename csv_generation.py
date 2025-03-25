@@ -18,7 +18,7 @@ def parse_game_data(game_text):
     else:
         return None
 
-    match = re.search(r"Shuffle ID: ([\d_]+)", game_text)
+    match = re.search(r"Shuffle ID: ([A-Za-z0-9]+)", game_text)
     if match:
         game_data['ShuffleID'] = match.group(1)
 

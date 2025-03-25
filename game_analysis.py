@@ -1,83 +1,89 @@
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
+from collections import defaultdict
+from itertools import combinations
 
 def analyze_game_results(csv_file):
-    """Analyzes the game results CSV and provides statistics and visualizations,
-       divided by the number of players.
+    """
+    Analyzes game results from a CSV file for "The Game".
+
+    Args:
+        csv_file (str): The path to the CSV file containing the game results.
+
+    Returns:
+        dict: A dictionary containing the analysis results.
     """
 
-    try:
-        df = pd.read_csv(csv_file)
-    except FileNotFoundError:
-        print(f"Error: CSV file '{csv_file}' not found.")
-        return
-    except pd.errors.EmptyDataError:
-        print(f"Error: CSV file '{csv_file}' is empty.")
-        return
-    except Exception as e:
-        print(f"An error occurred while reading the CSV: {e}")
-        return
+    df = pd.read_csv(csv_file)
 
-    # --- Data Cleaning and Preprocessing ---
-    for col in ['NumPlayers', 'Turns', 'DeckSize']:
-        df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
+    # 1. Wins per strategy and per number of players
+    wins_by_strategy_players = df.groupby(['NumPlayers', 'Strategy'])['Win'].apply(
+        lambda x: (x == True).sum()
+    ).reset_index()
 
-    # --- Analysis, grouped by NumPlayers ---
-    for num_players in sorted(df['NumPlayers'].unique()):
-        print(f"\n--- Analysis for {num_players} Player(s) ---")
-        df_subset = df[df['NumPlayers'] == num_players]
+    # 2. Average turns before losing (only for lost games)
+    lost_games = df[df['Win'] == False]
+    avg_turns_lost = lost_games.groupby(['NumPlayers', 'Strategy'])['Turns'].mean().reset_index()
 
-        # --- Win Counts ---
-        print("\nWin Counts by Strategy:")
-        print(df_subset.groupby('Strategy')['Win'].value_counts().unstack(fill_value=0))
+    # 3. Average deck size when losing
+    avg_deck_size_lost = lost_games.groupby(['NumPlayers', 'Strategy'])['DeckSize'].mean().reset_index()
 
-        # --- Win Rate Analysis ---
-        win_rate_by_strategy = df_subset.groupby('Strategy')['Win'].value_counts(normalize=True).unstack(fill_value=0)
-        print("\nWin Rate by Strategy:\n", win_rate_by_strategy)
+    # Get unique Strategy
+    strategies = set(df['Strategy'].unique())
+    # Get unique NumPlayers
+    num_players = set(df['NumPlayers'].unique())
 
 
-        # --- Turns Analysis (Losses Only) ---
-        avg_turns_loss = df_subset[df_subset['Win'] == False]['Turns'].mean()
-        print("\nAverage Turns (Losses Only):", avg_turns_loss if not pd.isna(avg_turns_loss) else "No losses")
+    all_strategies_combinations = []
+    for i in range(1, len(strategies) + 1):  # Iterate through combination lengths
+        for comb in combinations(strategies, i):
+            all_strategies_combinations.append(list(sorted(comb)))  # Sort and add as tuple
+    
+    shuffle_strategy_map = defaultdict(dict)
+    for n in num_players:
+        shuffle_strategy_map[n] = defaultdict(list)
 
-        #Average Turns (Losses Only) By Strategy
-        print("\nAverage Turns (Losses Only) by Strategy")
-        print(df_subset[df_subset['Win'] == False].groupby('Strategy')['Turns'].mean())
+    for _, row in df[df['Win'] == True].iterrows():
+        n = row['NumPlayers']
+        shuffle_id = row['ShuffleID']
+        strategy = row['Strategy']
+        shuffle_strategy_map[n][shuffle_id].append(strategy)
+    
+    shuffle_map = dict(shuffle_strategy_map)
+    for k in shuffle_map:
+        shuffle_map[k] = dict(shuffle_map[k])
+
+    combination_counts = defaultdict(dict)
+    for n in num_players:
+        combination_counts[n] = defaultdict(int)
+
+    for k in shuffle_map:
+        for strategies in shuffle_map[k].values():
+            # Sort the strategies and convert to a tuple for consistent counting
+            sorted_strategies = tuple(sorted(strategies))
+            combination_counts[k][sorted_strategies] += 1
+
+    combination_wins_count = dict(combination_counts)
+    for k in combination_wins_count:
+        combination_wins_count[k] = dict(combination_wins_count[k])
+    
+
+    return {
+        'wins_per_strategy_and_players': wins_by_strategy_players,
+        'average_turns_before_losing': avg_turns_lost,
+        'average_deck_size_when_losing': avg_deck_size_lost,
+        'combination_wins_count': combination_wins_count
+    }
 
 
-        # # --- Visualizations ---
 
-        # plt.figure(figsize=(10, 6))
-        # sns.countplot(data=df_subset, x='Strategy', hue='Win')
-        # plt.title(f'Win/Loss Count by Strategy ({num_players} Players)')
-        # plt.show()
+# Example usage:
+results = analyze_game_results('out/game_results.csv')
 
-        # # Only plot if there are losses
-        # if not df_subset[df_subset['Win'] == False].empty:
-        #     plt.figure(figsize=(10, 6))
-        #     sns.barplot(data=df_subset[df_subset['Win'] == False], x='Strategy', y='Turns', ci=None)
-        #     plt.title(f'Average Turns for Losses by Strategy ({num_players} Players)')
-        #     plt.show()
-
-        #     plt.figure(figsize=(10, 6))
-        #     sns.boxplot(data=df_subset[df_subset['Win'] == False], x='Strategy', y='Turns')
-        #     plt.title(f'Distribution of Turns for Losses by Strategy ({num_players} Players)')
-        #     plt.show()
-
-        # plt.figure(figsize=(10, 6))
-        # sns.histplot(data=df_subset, x='Turns', bins=20, kde=True)
-        # plt.title(f'Distribution of Turns ({num_players} Players)')
-        # plt.show()
-
-        
-    # --- Overall Win Counts (Across all player counts) ---
-    print("\n--- Overall Win Counts by Number of Players and Strategy ---")
-    print(df.groupby(['NumPlayers', 'Strategy'])['Win'].value_counts().unstack(fill_value=0))
-
-
-# --- Main Execution ---
-if __name__ == "__main__":
-    csv_file_path = "out/game_results.csv"
-    analyze_game_results(csv_file_path)
+print("Wins per Strategy and Number of Players:")
+print(results['wins_per_strategy_and_players'])
+print("\nAverage Turns Before Losing (for lost games):")
+print(results['average_turns_before_losing'])
+print("\nAverage Deck Size When Losing:")
+print(results['average_deck_size_when_losing'])
+print("\nWin Combination Counts (Number of Players, Number of Strategies): Count")
+print(results['combination_wins_count'])

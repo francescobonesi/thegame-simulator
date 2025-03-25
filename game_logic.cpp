@@ -6,6 +6,8 @@
  #include <numeric>  // std::iota
  #include <sstream>  // std::stringstream
  #include <algorithm> // std::remove, std::find
+ #include <iomanip> // For std::hex and std::setw
+ #include <cstring>
 
  // Constants (declared in main.cpp, defined extern here)
  extern int CARD_MAX_NUMBER;  // Maximum value a card can have
@@ -221,23 +223,156 @@
     return check_win_condition_multiplayer(players, deck_size);
 }
  
- /**
-  * @brief Generates a unique ID string for a shuffled deck of cards.
-  *
-  * This function creates a string representation of the deck, with each
-  * card value separated by an underscore. This ID can be used to identify
-  * a specific deck configuration.
-  *
-  * @param deck The shuffled deck of cards.
-  * @return A unique ID string for the deck.
-  */
- std::string generate_deck_id(const std::vector<int> &deck)
- {
-  std::stringstream ss; // Create a stringstream to build the ID string
-  // Iterate through each card in the deck
-  for (int card : deck)
-  {
-   ss << card << "_"; // Add the card value and an underscore to the stringstream
-  }
-  return ss.str(); // Return the final ID string
- }
+ // Base64 encoding functions (simplified, you might want to use a library)
+namespace base64 {
+
+    static const std::string base64_chars =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz"
+        "0123456789+/";
+
+    std::string encode(const std::string& input) {
+        std::string encoded;
+        int i = 0;
+        unsigned char char_array_3[3];
+        unsigned char char_array_4[4];
+
+        for (unsigned char c : input) {
+            char_array_3[i++] = c;
+            if (i == 3) {
+                char_array_4[0] = (char_array_3[0] & 0xfc) >> 2;
+                char_array_4[1] = ((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4);
+                char_array_4[2] = ((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6);
+                char_array_4[3] = char_array_3[2] & 0x3f;
+
+                for (i = 0; (i < 4); i++)
+                    encoded += base64_chars[char_array_4[i]];
+                i = 0;
+            }
+        }
+
+        if (i) {
+            for (int j = i; j < 3; j++)
+                char_array_3[j] = '\0';
+
+            char_array_4[0] = (char_array_3[0] & 0xfc) >> 2;
+            char_array_4[1] = ((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4);
+            char_array_4[2] = ((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6);
+            char_array_4[3] = char_array_3[2] & 0x3f;
+
+            for (int j = 0; (j < i + 1); j++)
+                encoded += base64_chars[char_array_4[j]];
+
+            while ((i++ < 3))
+                encoded += '=';
+        }
+
+        return encoded;
+    }
+
+} // namespace base64
+
+// MD5 implementation (no external library)
+namespace md5 {
+
+    std::string encode(const std::string& input) {
+        unsigned char message[input.size()];
+        for(size_t i = 0; i < input.size(); ++i) {
+            message[i] = static_cast<unsigned char>(input[i]);
+        }
+
+        unsigned int h0 = 0x67452301;
+        unsigned int h1 = 0xEFCDAB89;
+        unsigned int h2 = 0x98BADCFE;
+        unsigned int h3 = 0x10325476;
+
+        unsigned long long bit_length = input.size() * 8;
+        unsigned char padded_message[input.size() + 64]; // max pad
+
+        memcpy(padded_message, message, input.size());
+
+        padded_message[input.size()] = 0x80;
+
+        int padding_size = (56 - (input.size() + 1) % 64 + 64) % 64;
+        memset(padded_message + input.size() + 1, 0, padding_size);
+
+        for (int i = 0; i < 8; i++) {
+            padded_message[input.size() + 1 + padding_size + i] = (bit_length >> (i * 8)) & 0xFF;
+        }
+
+        unsigned int w[16];
+        for (int i = 0; i < input.size() + padding_size + 9; i+=64) {
+            for (int j = 0; j < 16; j++) {
+                w[j] = (padded_message[i+j*4]) | (padded_message[i+j*4+1] << 8) | (padded_message[i+j*4+2] << 16) | (padded_message[i+j*4+3] << 24);
+            }
+            unsigned int a = h0;
+            unsigned int b = h1;
+            unsigned int c = h2;
+            unsigned int d = h3;
+
+            unsigned int f, g;
+            unsigned int k[] = {
+                0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee,
+                0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
+                0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be,
+                0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821
+            };
+            unsigned int s[] = {
+                7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
+                5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20,
+                4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
+                6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21
+            };
+
+            for (int j = 0; j < 64; j++) {
+                if (j < 16) {
+                    f = (b & c) | ((~b) & d);
+                    g = j;
+                } else if (j < 32) {
+                    f = (d & b) | ((~d) & c);
+                    g = (5 * j + 1) % 16;
+                } else if (j < 48) {
+                    f = b ^ c ^ d;
+                    g = (3 * j + 5) % 16;
+                } else {
+                    f = c ^ (b | (~d));
+                    g = (7 * j) % 16;
+                }
+                unsigned int temp = d;
+                d = c;
+                c = b;
+                b = b + ((a + f + k[j] + w[g]) << s[j]) | ((a + f + k[j] + w[g]) >> (32 - s[j]));
+                a = temp;
+            }
+            h0 += a;
+            h1 += b;
+            h2 += c;
+            h3 += d;
+        }
+
+        std::stringstream hex_ss;
+        hex_ss << std::hex << std::setfill('0') << std::setw(8) << h0
+               << std::hex << std::setfill('0') << std::setw(8) << h1
+               << std::hex << std::setfill('0') << std::setw(8) << h2
+               << std::hex << std::setfill('0') << std::setw(8) << h3;
+
+        return hex_ss.str();
+    }
+} // namespace md5
+
+// Function to generate a unique ID for a shuffled deck, remove trailing underscore, and base64 encode
+std::string generate_deck_id(const std::vector<int> &deck) {
+    std::stringstream ss;
+    for (int card : deck) {
+        ss << card << "_";
+    }
+    std::string deck_str = ss.str();
+
+    // Remove the trailing underscore
+    if (!deck_str.empty()) {
+        deck_str.pop_back();
+    }
+
+    // Base64 encode the resulting string
+    return base64::encode(deck_str);
+}
